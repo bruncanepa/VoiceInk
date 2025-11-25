@@ -52,9 +52,12 @@ struct WordReplacementView: View {
     @State private var showAddReplacementModal = false
     @State private var showAlert = false
     @State private var editingOriginal: String? = nil
-    
+
     @State private var alertMessage = ""
     @State private var sortMode: SortMode = .originalAsc
+
+    @AppStorage("RemoveTrailingPeriod") private var removeTrailingPeriod = true
+    @AppStorage("RemoveInvertedQuestionMark") private var removeInvertedQuestionMark = true
     
     init() {
         if let savedSort = UserDefaults.standard.string(forKey: "wordReplacementSortMode"),
@@ -101,7 +104,49 @@ struct WordReplacementView: View {
                         .foregroundColor(.blue)
                 }
             }
-            
+
+            // Custom Formatting Section
+            GroupBox {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label {
+                        Text("Custom Formatting")
+                            .font(.headline)
+                    } icon: {
+                        Image(systemName: "textformat")
+                            .foregroundColor(.blue)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle(isOn: $removeTrailingPeriod) {
+                            HStack {
+                                Text("Remove trailing period (.)")
+                                    .font(.system(size: 13))
+                                Spacer()
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.secondary)
+                                    .help("Automatically remove trailing periods (.) before pasting. The trailing space, if enabled, will be preserved.")
+                            }
+                        }
+                        .toggleStyle(.switch)
+
+                        Toggle(isOn: $removeInvertedQuestionMark) {
+                            HStack {
+                                Text("Remove inverted question mark (¿)")
+                                    .font(.system(size: 13))
+                                Spacer()
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.secondary)
+                                    .help("Automatically remove trailing inverted question marks (¿) before pasting. Common in Spanish transcriptions.")
+                            }
+                        }
+                        .toggleStyle(.switch)
+                    }
+                }
+                .padding(8)
+            }
+
             VStack(spacing: 0) {
                 HStack(spacing: 16) {
                     Button(action: { toggleSort(for: .original) }) {

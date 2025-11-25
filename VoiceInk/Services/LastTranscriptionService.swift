@@ -66,8 +66,11 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        let textToPaste = lastTranscription.text
-        
+        var textToPaste = lastTranscription.text
+        let removeTrailingPeriod = UserDefaults.standard.object(forKey: "RemoveTrailingPeriod") as? Bool ?? true
+        let removeInvertedQuestionMark = UserDefaults.standard.object(forKey: "RemoveInvertedQuestionMark") as? Bool ?? true
+        textToPaste = TextFormatter.customFormat(from: textToPaste, removeTrailingPeriod: removeTrailingPeriod, removeInvertedQuestionMark: removeInvertedQuestionMark)
+
         // Delay to give the user time to release modifier keys (especially Control)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             CursorPaster.pasteAtCursor(textToPaste + " ")
@@ -86,13 +89,17 @@ class LastTranscriptionService: ObservableObject {
         }
         
         // Prefer enhanced text; if unavailable, fallback to original text (which may contain an error message)
-        let textToPaste: String = {
+        var textToPaste: String = {
             if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
                 return enhancedText
             } else {
                 return lastTranscription.text
             }
         }()
+
+        let removeTrailingPeriod = UserDefaults.standard.object(forKey: "RemoveTrailingPeriod") as? Bool ?? true
+        let removeInvertedQuestionMark = UserDefaults.standard.object(forKey: "RemoveInvertedQuestionMark") as? Bool ?? true
+        textToPaste = TextFormatter.customFormat(from: textToPaste, removeTrailingPeriod: removeTrailingPeriod, removeInvertedQuestionMark: removeInvertedQuestionMark)
 
         // Delay to allow modifier keys to be released
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

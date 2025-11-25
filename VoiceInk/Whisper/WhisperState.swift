@@ -391,6 +391,10 @@ class WhisperState: NSObject, ObservableObject {
         if await checkCancellationAndCleanup() { return }
 
         if var textToPaste = finalPastedText, transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
+            let removeTrailingPeriod = UserDefaults.standard.object(forKey: "RemoveTrailingPeriod") as? Bool ?? true
+            let removeInvertedQuestionMark = UserDefaults.standard.object(forKey: "RemoveInvertedQuestionMark") as? Bool ?? true
+            textToPaste = TextFormatter.customFormat(from: textToPaste, removeTrailingPeriod: removeTrailingPeriod, removeInvertedQuestionMark: removeInvertedQuestionMark)
+
             if case .trialExpired = licenseViewModel.licenseState {
                 textToPaste = """
                     Your trial has expired. Upgrade to VoiceInk Pro at tryvoiceink.com/buy
