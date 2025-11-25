@@ -98,6 +98,10 @@ struct LanguageSelectionView: View {
                                 currentModel.supportedLanguages.sorted(by: {
                                     if $0.key == "auto" { return true }
                                     if $1.key == "auto" { return false }
+                                    if $0.key == "en" { return true }
+                                    if $1.key == "en" { return false }
+                                    if $0.key == "es" { return true }
+                                    if $1.key == "es" { return false }
                                     return $0.value < $1.value
                                 }), id: \.key
                             ) { key, value in
@@ -170,6 +174,10 @@ struct LanguageSelectionView: View {
                         getCurrentModelLanguages().sorted(by: {
                             if $0.key == "auto" { return true }
                             if $1.key == "auto" { return false }
+                            if $0.key == "en" { return true }
+                            if $1.key == "en" { return false }
+                            if $0.key == "es" { return true }
+                            if $1.key == "es" { return false }
                             return $0.value < $1.value
                         }), id: \.key
                     ) { key, value in

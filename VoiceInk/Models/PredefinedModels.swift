@@ -280,6 +280,8 @@ import Foundation
  
      static let allLanguages = [
          "auto": "Auto-detect",
+         "en": "English",
+         "es": "Spanish",
          "af": "Afrikaans",
          "am": "Amharic",
          "ar": "Arabic",
@@ -298,8 +300,6 @@ import Foundation
          "da": "Danish",
          "de": "German",
          "el": "Greek",
-         "en": "English",
-         "es": "Spanish",
          "et": "Estonian",
          "eu": "Basque",
          "fa": "Persian",
