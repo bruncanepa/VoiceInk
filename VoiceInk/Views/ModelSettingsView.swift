@@ -72,7 +72,7 @@ struct ModelSettingsView: View {
                     Text("Add space after paste")
                 }
                 .toggleStyle(.switch)
-                
+
                 InfoTip(
                     title: "Trailing Space",
                     message: "Automatically add a space after pasted text. Useful for space-delimited languages."
