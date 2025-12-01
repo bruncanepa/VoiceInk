@@ -228,19 +228,19 @@ struct SettingsView: View {
                             if soundManager.isEnabled {
                                 Spacer()
 
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        isCustomSoundsExpanded.toggle()
-                                    }
-                                }) {
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .rotationEffect(.degrees(isCustomSoundsExpanded ? 90 : 0))
-                                        .animation(.easeInOut(duration: 0.2), value: isCustomSoundsExpanded)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .rotationEffect(.degrees(isCustomSoundsExpanded ? 90 : 0))
+                                    .animation(.easeInOut(duration: 0.2), value: isCustomSoundsExpanded)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if soundManager.isEnabled {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isCustomSoundsExpanded.toggle()
                                 }
-                                .buttonStyle(.plain)
-                                .help("Customize recording sounds")
                             }
                         }
 
@@ -300,7 +300,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Select the method used to paste text. Use AppleScript if you have a non-standard keyboard layout.")
                             .settingsDescription()
-                        
+
                         Toggle("Use AppleScript Paste Method", isOn: Binding(
                             get: { UserDefaults.standard.bool(forKey: "UseAppleScriptPaste") },
                             set: { UserDefaults.standard.set($0, forKey: "UseAppleScriptPaste") }

@@ -2,17 +2,20 @@ import Foundation
 import AppKit
 
 class CursorPaster {
-    
+
     static func pasteAtCursor(_ text: String) {
         let pasteboard = NSPasteboard.general
         let preserveTranscript = UserDefaults.standard.bool(forKey: "preserveTranscriptInClipboard")
-        
+
+        let context = TextInsertionFormatter.getInsertionContext()
+        let textToInsert = TextInsertionFormatter.formatTextForInsertion(text, context: context)
+
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
-        
+
         // Only save clipboard contents if we plan to restore them
         if !preserveTranscript {
             let currentItems = pasteboard.pasteboardItems ?? []
-            
+
             for item in currentItems {
                 for type in item.types {
                     if let data = item.data(forType: type) {
@@ -21,13 +24,8 @@ class CursorPaster {
                 }
             }
         }
-        
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
 
-        if !preserveTranscript {
-            pasteboard.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
-        }
+        ClipboardManager.setClipboard(textToInsert, transient: !preserveTranscript)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if UserDefaults.standard.bool(forKey: "UseAppleScriptPaste") {
