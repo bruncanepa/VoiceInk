@@ -34,8 +34,14 @@ actor WhisperContext {
         let maxThreads = max(1, min(8, cpuCount() - 2))
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
         
-        // Read language directly from UserDefaults
-        let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
+        // Check for temporary language override first, then fall back to user's selected language
+        let selectedLanguage: String
+        if let overrideLanguage = UserDefaults.standard.string(forKey: "TemporaryLanguageOverride") {
+            selectedLanguage = overrideLanguage
+        } else {
+            selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
+        }
+
         if selectedLanguage != "auto" {
             languageCString = Array(selectedLanguage.utf8CString)
             params.language = languageCString?.withUnsafeBufferPointer { ptr in

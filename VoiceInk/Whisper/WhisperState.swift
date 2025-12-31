@@ -28,6 +28,9 @@ class WhisperState: NSObject, ObservableObject {
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
 
+    // Temporary language override from hotkey binding
+    @Published var temporaryLanguageOverride: String? = nil
+
 
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
         didSet {
@@ -426,6 +429,12 @@ class WhisperState: NSObject, ObservableObject {
            let enhancementService = enhancementService,
            result.shouldEnableAI {
             await promptDetectionService.restoreOriginalSettings(result, to: enhancementService)
+        }
+
+        // Clear temporary language override after transcription completes
+        await MainActor.run {
+            self.temporaryLanguageOverride = nil
+            UserDefaults.standard.removeObject(forKey: "TemporaryLanguageOverride")
         }
 
         await self.dismissMiniRecorder()

@@ -12,9 +12,12 @@ class WhisperPrompt: ObservableObject {
     
     // Language-specific base prompts
     private let languagePrompts: [String: String] = [
+        // Auto-detect mode with bilingual English/Spanish bias
+        "auto": "Hello, how are you? Hola, ¿cómo estás? This transcription contains English and Spanish. Common words: please, por favor, thank you, gracias, yes, sí, no, good morning, buenos días, goodbye, adiós, welcome, bienvenido, one, uno, two, dos, three, tres.",
+
         // English
         "en": "Hello, how are you doing? Nice to meet you.",
-        
+
         // Asian Languages
         "hi": "नमस्ते, कैसे हैं आप? आपसे मिलकर अच्छा लगा।",
         "bn": "নমস্কার, কেমন আছেন? আপনার সাথে দেখা হয়ে ভালো লাগলো।",
@@ -24,7 +27,7 @@ class WhisperPrompt: ObservableObject {
         "th": "สวัสดีครับ/ค่ะ, สบายดีไหม? ยินดีที่ได้พบคุณ",
         "vi": "Xin chào, bạn khỏe không? Rất vui được gặp bạn.",
         "yue": "你好，最近點呀？見到你好開心。",
-        
+
         // European Languages
         "es": "¡Hola, ¿cómo estás? Encantado de conocerte.",
         "fr": "Bonjour, comment allez-vous? Ravi de vous rencontrer.",
@@ -35,21 +38,21 @@ class WhisperPrompt: ObservableObject {
         "pl": "Cześć, jak się masz? Miło cię poznać.",
         "nl": "Hallo, hoe gaat het? Aangenaam kennis te maken.",
         "tr": "Merhaba, nasılsın? Tanıştığımıza memnun oldum.",
-        
+
         // Middle Eastern Languages
         "ar": "مرحباً، كيف حالك؟ سعيد بلقائك.",
         "fa": "سلام، حال شما چطور است؟ از آشنایی با شما خوشوقتم.",
         "he": ",שלום, מה שלומך? נעים להכיר",
-        
+
         // South Asian Languages
         "ta": "வணக்கம், எப்படி இருக்கிறீர்கள்? உங்களை சந்தித்ததில் மகிழ்ச்சி.",
         "te": "నమస్కారం, ఎలా ఉన్నారు? కలవడం చాలా సంతోషం.",
         "ml": "നമസ്കാരം, സുഖമാണോ? കണ്ടതിൽ സന്തോഷം.",
         "kn": "ನಮಸ್ಕಾರ, ಹೇಗಿದ್ದೀರಾ? ನಿಮ್ಮನ್ನು ಭೇಟಿಯಾಗಿ ಸಂತೋಷವಾಗಿದೆ.",
         "ur": "السلام علیکم، کیسے ہیں آپ؟ آپ سے مل کر خوشی ہوئی۔",
-        
-        // Default prompt for unsupported languages
-        "default": ""
+
+        // Default prompt for unsupported languages (bilingual fallback)
+        "default": "Hello, how are you? Hola, ¿cómo estás?"
     ]
     
     init() {

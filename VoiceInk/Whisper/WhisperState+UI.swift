@@ -32,7 +32,15 @@ extension WhisperState {
     
     // MARK: - Mini Recorder Management
     
-    func toggleMiniRecorder() async {
+    func toggleMiniRecorder(withLanguage language: String? = nil) async {
+        // Store language override if provided
+        if let language = language {
+            await MainActor.run {
+                self.temporaryLanguageOverride = language
+                UserDefaults.standard.set(language, forKey: "TemporaryLanguageOverride")
+            }
+        }
+
         if isMiniRecorderVisible {
             if recordingState == .recording {
                 await toggleRecord()
@@ -106,6 +114,13 @@ extension WhisperState {
     func cancelRecording() async {
         SoundManager.shared.playEscSound()
         shouldCancelRecording = true
+
+        // Clear temporary language override when canceling
+        await MainActor.run {
+            self.temporaryLanguageOverride = nil
+            UserDefaults.standard.removeObject(forKey: "TemporaryLanguageOverride")
+        }
+
         await dismissMiniRecorder()
     }
     
@@ -118,9 +133,9 @@ extension WhisperState {
         NotificationCenter.default.addObserver(self, selector: #selector(handlePromptChange), name: .promptDidChange, object: nil)
     }
     
-    @objc public func handleToggleMiniRecorder() {
+    @objc public func handleToggleMiniRecorder(withLanguage language: String? = nil) {
         Task {
-            await toggleMiniRecorder()
+            await toggleMiniRecorder(withLanguage: language)
         }
     }
     

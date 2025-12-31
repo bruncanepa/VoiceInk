@@ -39,7 +39,19 @@ class HotkeyManager: ObservableObject {
             UserDefaults.standard.set(middleClickActivationDelay, forKey: "middleClickActivationDelay")
         }
     }
-    
+
+    // Language binding for hotkeys
+    @Published var hotkey1Language: String? {
+        didSet {
+            UserDefaults.standard.set(hotkey1Language, forKey: "hotkey1Language")
+        }
+    }
+    @Published var hotkey2Language: String? {
+        didSet {
+            UserDefaults.standard.set(hotkey2Language, forKey: "hotkey2Language")
+        }
+    }
+
     private var whisperState: WhisperState
     private var miniRecorderShortcutManager: MiniRecorderShortcutManager
     
@@ -119,11 +131,15 @@ class HotkeyManager: ObservableObject {
     init(whisperState: WhisperState) {
         self.selectedHotkey1 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey1") ?? "") ?? .rightCommand
         self.selectedHotkey2 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey2") ?? "") ?? .none
-        
+
         self.isMiddleClickToggleEnabled = UserDefaults.standard.bool(forKey: "isMiddleClickToggleEnabled")
         let storedDelay = UserDefaults.standard.integer(forKey: "middleClickActivationDelay")
         self.middleClickActivationDelay = storedDelay > 0 ? storedDelay : 200
-        
+
+        // Load language bindings
+        self.hotkey1Language = UserDefaults.standard.string(forKey: "hotkey1Language")
+        self.hotkey2Language = UserDefaults.standard.string(forKey: "hotkey2Language")
+
         self.whisperState = whisperState
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(whisperState: whisperState)
 
@@ -220,19 +236,23 @@ class HotkeyManager: ObservableObject {
         // Hotkey 1
         if selectedHotkey1 == .custom {
             KeyboardShortcuts.onKeyDown(for: .toggleMiniRecorder) { [weak self] in
-                Task { @MainActor in await self?.handleCustomShortcutKeyDown() }
+                guard let self = self else { return }
+                Task { @MainActor in await self.handleCustomShortcutKeyDown(language: self.hotkey1Language) }
             }
             KeyboardShortcuts.onKeyUp(for: .toggleMiniRecorder) { [weak self] in
-                Task { @MainActor in await self?.handleCustomShortcutKeyUp() }
+                guard let self = self else { return }
+                Task { @MainActor in await self.handleCustomShortcutKeyUp(language: self.hotkey1Language) }
             }
         }
         // Hotkey 2
         if selectedHotkey2 == .custom {
             KeyboardShortcuts.onKeyDown(for: .toggleMiniRecorder2) { [weak self] in
-                Task { @MainActor in await self?.handleCustomShortcutKeyDown() }
+                guard let self = self else { return }
+                Task { @MainActor in await self.handleCustomShortcutKeyDown(language: self.hotkey2Language) }
             }
             KeyboardShortcuts.onKeyUp(for: .toggleMiniRecorder2) { [weak self] in
-                Task { @MainActor in await self?.handleCustomShortcutKeyUp() }
+                guard let self = self else { return }
+                Task { @MainActor in await self.handleCustomShortcutKeyUp(language: self.hotkey2Language) }
             }
         }
     }
@@ -271,21 +291,26 @@ class HotkeyManager: ObservableObject {
     private func handleModifierKeyEvent(_ event: NSEvent) async {
         let keycode = event.keyCode
         let flags = event.modifierFlags
-        
+
         // Determine which hotkey (if any) is being triggered
         let activeHotkey: HotkeyOption?
+        let hotkeyLanguage: String?
+
         if selectedHotkey1.isModifierKey && selectedHotkey1.keyCode == keycode {
             activeHotkey = selectedHotkey1
+            hotkeyLanguage = hotkey1Language
         } else if selectedHotkey2.isModifierKey && selectedHotkey2.keyCode == keycode {
             activeHotkey = selectedHotkey2
+            hotkeyLanguage = hotkey2Language
         } else {
             activeHotkey = nil
+            hotkeyLanguage = nil
         }
-        
+
         guard let hotkey = activeHotkey else { return }
-        
+
         var isKeyPressed = false
-        
+
         switch hotkey {
         case .rightOption, .leftOption:
             isKeyPressed = flags.contains(.option)
@@ -296,10 +321,10 @@ class HotkeyManager: ObservableObject {
             // Debounce Fn key
             pendingFnKeyState = isKeyPressed
             fnDebounceTask?.cancel()
-            fnDebounceTask = Task { [pendingState = isKeyPressed] in
+            fnDebounceTask = Task { [pendingState = isKeyPressed, language = hotkeyLanguage] in
                 try? await Task.sleep(nanoseconds: 75_000_000) // 75ms
                 if pendingFnKeyState == pendingState {
-                    await self.processKeyPress(isKeyPressed: pendingState)
+                    await self.processKeyPress(isKeyPressed: pendingState, language: language)
                 }
             }
             return
@@ -311,10 +336,10 @@ class HotkeyManager: ObservableObject {
             return // Should not reach here
         }
 
-        await processKeyPress(isKeyPressed: isKeyPressed)
+        await processKeyPress(isKeyPressed: isKeyPressed, language: hotkeyLanguage)
     }
     
-    private func processKeyPress(isKeyPressed: Bool) async {
+    private func processKeyPress(isKeyPressed: Bool, language: String? = nil) async {
         guard isKeyPressed != currentKeyState else { return }
         currentKeyState = isKeyPressed
 
@@ -324,13 +349,13 @@ class HotkeyManager: ObservableObject {
             if isHandsFreeMode {
                 isHandsFreeMode = false
                 guard canProcessHotkeyAction else { return }
-                await whisperState.handleToggleMiniRecorder()
+                await whisperState.handleToggleMiniRecorder(withLanguage: language)
                 return
             }
 
             if !whisperState.isMiniRecorderVisible {
                 guard canProcessHotkeyAction else { return }
-                await whisperState.handleToggleMiniRecorder()
+                await whisperState.handleToggleMiniRecorder(withLanguage: language)
             }
         } else {
             let now = Date()
@@ -342,7 +367,7 @@ class HotkeyManager: ObservableObject {
                     isHandsFreeMode = true
                 } else {
                     guard canProcessHotkeyAction else { return }
-                    await whisperState.handleToggleMiniRecorder()
+                    await whisperState.handleToggleMiniRecorder(withLanguage: language)
                 }
             }
 
@@ -350,47 +375,47 @@ class HotkeyManager: ObservableObject {
         }
     }
     
-    private func handleCustomShortcutKeyDown() async {
+    private func handleCustomShortcutKeyDown(language: String?) async {
         if let lastTrigger = lastShortcutTriggerTime,
            Date().timeIntervalSince(lastTrigger) < shortcutCooldownInterval {
             return
         }
-        
+
         guard !shortcutCurrentKeyState else { return }
         shortcutCurrentKeyState = true
         lastShortcutTriggerTime = Date()
         shortcutKeyPressStartTime = Date()
-        
+
         if isShortcutHandsFreeMode {
             isShortcutHandsFreeMode = false
             guard canProcessHotkeyAction else { return }
-            await whisperState.handleToggleMiniRecorder()
+            await whisperState.handleToggleMiniRecorder(withLanguage: language)
             return
         }
-        
+
         if !whisperState.isMiniRecorderVisible {
             guard canProcessHotkeyAction else { return }
-            await whisperState.handleToggleMiniRecorder()
+            await whisperState.handleToggleMiniRecorder(withLanguage: language)
         }
     }
-    
-    private func handleCustomShortcutKeyUp() async {
+
+    private func handleCustomShortcutKeyUp(language: String?) async {
         guard shortcutCurrentKeyState else { return }
         shortcutCurrentKeyState = false
-        
+
         let now = Date()
-        
+
         if let startTime = shortcutKeyPressStartTime {
             let pressDuration = now.timeIntervalSince(startTime)
-            
+
             if pressDuration < briefPressThreshold {
                 isShortcutHandsFreeMode = true
             } else {
                 guard canProcessHotkeyAction else { return }
-                await whisperState.handleToggleMiniRecorder()
+                await whisperState.handleToggleMiniRecorder(withLanguage: language)
             }
         }
-        
+
         shortcutKeyPressStartTime = nil
     }
     

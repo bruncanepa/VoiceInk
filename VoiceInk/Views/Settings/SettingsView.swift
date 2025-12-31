@@ -37,7 +37,8 @@ struct SettingsView: View {
                         hotkeyView(
                             title: "Hotkey 1",
                             binding: $hotkeyManager.selectedHotkey1,
-                            shortcutName: .toggleMiniRecorder
+                            shortcutName: .toggleMiniRecorder,
+                            languageBinding: $hotkeyManager.hotkey1Language
                         )
 
                         if hotkeyManager.selectedHotkey2 != .none {
@@ -46,6 +47,7 @@ struct SettingsView: View {
                                 title: "Hotkey 2",
                                 binding: $hotkeyManager.selectedHotkey2,
                                 shortcutName: .toggleMiniRecorder2,
+                                languageBinding: $hotkeyManager.hotkey2Language,
                                 isRemovable: true,
                                 onRemove: {
                                     withAnimation { hotkeyManager.selectedHotkey2 = .none }
@@ -462,62 +464,92 @@ struct SettingsView: View {
         title: String,
         binding: Binding<HotkeyManager.HotkeyOption>,
         shortcutName: KeyboardShortcuts.Name,
+        languageBinding: Binding<String?>,
         isRemovable: Bool = false,
         onRemove: (() -> Void)? = nil
     ) -> some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
-            
-            Menu {
-                ForEach(HotkeyManager.HotkeyOption.allCases, id: \.self) { option in
-                    Button(action: {
-                        binding.wrappedValue = option
-                    }) {
-                        HStack {
-                            Text(option.displayName)
-                            if binding.wrappedValue == option {
-                                Spacer()
-                                Image(systemName: "checkmark")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Menu {
+                    ForEach(HotkeyManager.HotkeyOption.allCases, id: \.self) { option in
+                        Button(action: {
+                            binding.wrappedValue = option
+                        }) {
+                            HStack {
+                                Text(option.displayName)
+                                if binding.wrappedValue == option {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
                             }
                         }
                     }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(binding.wrappedValue.displayName)
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    Text(binding.wrappedValue.displayName)
-                        .foregroundColor(.primary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10))
+                .menuStyle(.borderlessButton)
+
+                if binding.wrappedValue == .custom {
+                    KeyboardShortcuts.Recorder(for: shortcutName)
+                        .controlSize(.small)
+                }
+
+                Spacer()
+
+                if isRemovable {
+                    Button(action: {
+                        onRemove?()
+                    }) {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Language picker for the hotkey
+            if binding.wrappedValue != .none {
+                HStack(spacing: 12) {
+                    Text("Language:")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
-            }
-            .menuStyle(.borderlessButton)
-            
-            if binding.wrappedValue == .custom {
-                KeyboardShortcuts.Recorder(for: shortcutName)
+
+                    Picker("", selection: languageBinding) {
+                        Text("Use Global Setting").tag(nil as String?)
+                        Divider()
+                        Text("Spanish").tag("es" as String?)
+                        Text("English").tag("en" as String?)
+                    }
+                    .pickerStyle(.menu)
                     .controlSize(.small)
-            }
-            
-            Spacer()
-            
-            if isRemovable {
-                Button(action: {
-                    onRemove?()
-                }) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundColor(.red)
+                    .frame(width: 180)
+
+                    InfoTip(
+                        title: "Language Binding",
+                        message: "Set a specific language for this hotkey. When you press this hotkey, VoiceInk will transcribe in the selected language, ignoring the global language setting."
+                    )
+
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+                .padding(.leading, 25)
             }
         }
     }
