@@ -55,6 +55,7 @@ struct WordReplacementView: View {
 
     @State private var alertMessage = ""
     @State private var sortMode: SortMode = .originalAsc
+    @State private var searchQuery = ""
 
     @AppStorage("RemoveTrailingPeriod") private var removeTrailingPeriod = true
     @AppStorage("RemoveInvertedQuestionMark") private var removeInvertedQuestionMark = true
@@ -66,18 +67,37 @@ struct WordReplacementView: View {
         }
     }
     
-    private var sortedReplacements: [(key: String, value: String)] {
+    private var filteredAndSortedReplacements: [(key: String, value: String)] {
         let pairs = Array(manager.replacements)
-        
+
+        // Filter based on search query
+        let filtered: [(key: String, value: String)]
+        if searchQuery.isEmpty {
+            filtered = pairs
+        } else {
+            filtered = pairs.filter { pair in
+                let searchLower = searchQuery.lowercased()
+
+                // Search in original text (including comma-separated variants)
+                let originalMatches = pair.key.lowercased().contains(searchLower)
+
+                // Search in replacement text
+                let replacementMatches = pair.value.lowercased().contains(searchLower)
+
+                return originalMatches || replacementMatches
+            }
+        }
+
+        // Apply sorting to filtered results
         switch sortMode {
         case .originalAsc:
-            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
+            return filtered.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
         case .originalDesc:
-            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedDescending }
+            return filtered.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedDescending }
         case .replacementAsc:
-            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedAscending }
+            return filtered.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedAscending }
         case .replacementDesc:
-            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedDescending }
+            return filtered.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedDescending }
         }
     }
     
@@ -147,6 +167,24 @@ struct WordReplacementView: View {
                 .padding(8)
             }
 
+            // Search Bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search replacements...", text: $searchQuery)
+                    .textFieldStyle(.plain)
+                if !searchQuery.isEmpty {
+                    Button(action: { searchQuery = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(8)
+            .background(Color(.textBackgroundColor))
+            .cornerRadius(6)
+
             VStack(spacing: 0) {
                 HStack(spacing: 16) {
                     Button(action: { toggleSort(for: .original) }) {
@@ -203,18 +241,42 @@ struct WordReplacementView: View {
                 // Content
                 if manager.replacements.isEmpty {
                     EmptyStateView(showAddModal: $showAddReplacementModal)
+                } else if filteredAndSortedReplacements.isEmpty {
+                    // Search returned no results
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+
+                        Text("No Results")
+                            .font(.headline)
+
+                        Text("No replacements match '\(searchQuery)'")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button("Clear Search") {
+                            searchQuery = ""
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.regular)
+                        .padding(.top, 8)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(sortedReplacements.enumerated()), id: \.offset) { index, pair in
+                            ForEach(Array(filteredAndSortedReplacements.enumerated()), id: \.offset) { index, pair in
                                 ReplacementRow(
                                     original: pair.key,
                                     replacement: pair.value,
                                     onDelete: { manager.removeReplacement(original: pair.key) },
                                     onEdit: { editingOriginal = pair.key }
                                 )
-                                
-                                if index != sortedReplacements.count - 1 {
+
+                                if index != filteredAndSortedReplacements.count - 1 {
                                     Divider()
                                         .padding(.leading, 32)
                                 }
